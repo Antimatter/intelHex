@@ -79,6 +79,10 @@ function bufferReader(address, data) {
 	}
 }
 
+module.exports.binaryBufferReader = function(data, callback) {
+	callback(null, new bufferReader(0, data));
+}
+
 module.exports.binaryFileReader = function(path, callback) {
 
 	fs.readFile(path, function(err, data) {
