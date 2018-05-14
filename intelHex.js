@@ -105,7 +105,7 @@ module.exports.writeFile = callbackify((path, address, data, options) => {
     return ap
         .doWhilst(() => {
             stream.write(br.getNextRecord() + '\r\n');
-            if (options.progress) {
+            if (options && options.progress) {
                 var percent = Math.floor(br.bytesRead() * 100 / totalSize);
 
                 if (percent != lastPercent) {
@@ -285,7 +285,7 @@ const es = require('event-stream');
 
 module.exports.readFile = callbackify((filename, options) => {
     var hd = new _hexDecoder();
-    if (options.info) hd.on('info', data => options.info(data));
+    if (options && options.info) hd.on('info', data => options.info(data));
 
     return fs.stat(filename).then(stats => {
         let bytesRead = 0;
@@ -299,7 +299,7 @@ module.exports.readFile = callbackify((filename, options) => {
                 .pipe(
                     es.map((data, callback) => {
                         let line = data.trim();
-                        if (options.progress) {
+                        if (options && options.progress) {
                             bytesRead += line.length + 2;
                             var percent = Math.floor(
                                 bytesRead * 100 / stats.size
