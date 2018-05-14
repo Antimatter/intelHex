@@ -58,9 +58,19 @@ function _bufferReader(address, data) {
             return ':00000001FF';
         }
 
-        if (ptr < extended_linear_address * 65536 || ptr >= (extended_linear_address + 1) * 65536) {
+        if (
+            ptr < extended_linear_address * 65536 ||
+            ptr >= (extended_linear_address + 1) * 65536
+        ) {
             extended_linear_address = Math.floor(ptr / 65536);
-            return toRecord([2, 0, 0, 4, extended_linear_address >> 8, extended_linear_address & 0xff]);
+            return toRecord([
+                2,
+                0,
+                0,
+                4,
+                extended_linear_address >> 8,
+                extended_linear_address & 0xff
+            ]);
         }
 
         let count = Math.min(MAXLINEBYTES, endPtr - ptr);
@@ -85,23 +95,29 @@ function _bufferReader(address, data) {
 module.exports.binaryBufferReader = data => new _bufferReader(0, data);
 
 module.exports.binaryFileReader = path => {
-    return fs
-        .readFile(path)
-        .then(data => new _bufferReader(0, data));
+    return fs.readFile(path).then(data => new _bufferReader(0, data));
 };
 
-module.exports.writeHexFile = function(path, address, data) {
+module.exports.writeHexFile = function(path, address, data, progress) {
     let br = new _bufferReader(address, data);
     let stream = fs.createWriteStream(path);
 
+    let totalSize = br.length;
+    let lastPercent = -1;
+
     return ap
-        .doWhilst(
-            () => {
-                stream.write(br.getNextRecord().toString() + '\r\n');
-                return Promise.resolve();
-            },
-            () => !br.eof()
-        )
+        .doWhilst(() => {
+            stream.write(br.getNextRecord() + '\r\n');
+            if (progress) {
+                var percent = Math.floor(br.bytesRead() * 100 / totalSize);
+
+                if (percent != lastPercent) {
+                    progress(percent);
+                    lastPercent = percent;
+                }
+            }
+            return Promise.resolve();
+        }, () => !br.eof())
         .then(() => {
             return new Promise(resolve => {
                 stream.end(resolve);
@@ -130,7 +146,11 @@ function _hexDecoder() {
         if (c >= 'a' && c <= 'f') {
             return 10 + c.charCodeAt(0) - 'a'.charCodeAt(0);
         }
-        throw new Error(`invalid hex digit ${c} at line ${position.line}, column ${position.column}`);
+        throw new Error(
+            `invalid hex digit ${c} at line ${position.line}, column ${
+                position.column
+            }`
+        );
     };
 
     const _recordReader = function(line) {
@@ -180,7 +200,11 @@ function _hexDecoder() {
             let hr = new _recordReader(line);
 
             let byteCount = hr.getByte();
-            let address = extended_linear_address + extended_segment_address + hr.getByte() * 256 + hr.getByte();
+            let address =
+                extended_linear_address +
+                extended_segment_address +
+                hr.getByte() * 256 +
+                hr.getByte();
             let recordType = hr.getByte();
 
             switch (recordType) {
@@ -199,33 +223,59 @@ function _hexDecoder() {
                     break;
 
                 case 2: // extended-segment-address record
-                    extended_segment_address = (hr.getByte() * 256 + hr.getByte()) * 16;
+                    extended_segment_address =
+                        (hr.getByte() * 256 + hr.getByte()) * 16;
                     happy = hr.check();
-                    this.emit('info', `extended_segment_address: 0x${extended_segment_address.toString(16)}`);
+                    this.emit(
+                        'info',
+                        `extended_segment_address: 0x${extended_segment_address.toString(
+                            16
+                        )}`
+                    );
                     break;
 
                 case 4: // linear-base-address record
-                    extended_linear_address = (hr.getByte() * 256 + hr.getByte()) * 65536;
+                    extended_linear_address =
+                        (hr.getByte() * 256 + hr.getByte()) * 65536;
                     happy = hr.check();
-                    this.emit('info', `extended_linear_address: 0x${extended_linear_address.toString(16)}`);
+                    this.emit(
+                        'info',
+                        `extended_linear_address: 0x${extended_linear_address.toString(
+                            16
+                        )}`
+                    );
                     break;
 
                 case 5: // start-linear-address
                     var start_linear_address =
-                        ((hr.getByte() * 256 + hr.getByte()) * 256 + hr.getByte()) * 256 + hr.getByte();
+                        ((hr.getByte() * 256 + hr.getByte()) * 256 +
+                            hr.getByte()) *
+                            256 +
+                        hr.getByte();
                     happy = hr.check();
-                    this.emit('info', `start_linear_address: 0x${start_linear_address.toString(16)}`);
+                    this.emit(
+                        'info',
+                        `start_linear_address: 0x${start_linear_address.toString(
+                            16
+                        )}`
+                    );
                     break;
 
                 default:
-                    this.emit('info', `unhandled hex record type ${recordType}`);
+                    this.emit(
+                        'info',
+                        `unhandled hex record type ${recordType}`
+                    );
                     happy = false;
                     break;
             }
 
             position.line += 1;
         } else {
-            this.emit('info', `discarding malformed record on line ${position.line}`);
+            this.emit(
+                'info',
+                `discarding malformed record on line ${position.line}`
+            );
         }
 
         return happy & !done;
@@ -245,8 +295,7 @@ const _binaryFileWriter = function(path) {
     };
 
     this.close = () => {
-        return fs
-            .writeFile(path, hd.getBuffer());
+        return fs.writeFile(path, hd.getBuffer());
     };
 };
 
@@ -261,8 +310,8 @@ module.exports.readHexFile = function(filename, progress, info) {
     if (info) hd.on('info', data => info(data));
 
     return fs.stat(filename).then(stats => {
-        var bytesRead = 0;
-        var lastPercent = -1;
+        let bytesRead = 0;
+        let lastPercent = -1;
         return new Promise((resolve, reject) => {
             fs
                 .createReadStream(filename)
@@ -274,7 +323,9 @@ module.exports.readHexFile = function(filename, progress, info) {
                         let line = data.trim();
                         if (progress) {
                             bytesRead += line.length + 2;
-                            var percent = Math.floor(bytesRead * 100 / stats.size);
+                            var percent = Math.floor(
+                                bytesRead * 100 / stats.size
+                            );
 
                             if (percent != lastPercent) {
                                 progress(percent);
@@ -285,9 +336,8 @@ module.exports.readHexFile = function(filename, progress, info) {
                         callback();
                     })
                 );
-        })
-            .then(() => {
-                return { address: hd.getAddress(), data: hd.getBuffer() };
-            });
+        }).then(() => {
+            return { address: hd.getAddress(), data: hd.getBuffer() };
+        });
     });
 };
