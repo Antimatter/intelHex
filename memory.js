@@ -1,12 +1,12 @@
 function Memory() {
 
-    var INCREMENT = 1024;
+    const INCREMENT = 1024;
 
-    var startAddress = Number.MAXVALUE;
-    var endAddress = Number.MINVALUE;
-    var buffer = null;
+    let startAddress = Number.MAXVALUE;
+    let endAddress = Number.MINVALUE;
+    let buffer = null;
 
-    this.write = function(address, data) {
+    this.write = (address, data) => {
         
         if (!buffer) {
             buffer = new Buffer(INCREMENT);
@@ -15,7 +15,7 @@ function Memory() {
         }
 
         if (address < startAddress) {
-            var newBuffer = new Buffer(startAddress - address + buffer.length);
+            let newBuffer = new Buffer(startAddress - address + buffer.length);
             newBuffer.fill(0, 0, startAddress - address);
             buffer.copy(newBuffer, startAddress - address);
             buffer = newBuffer;
@@ -23,7 +23,7 @@ function Memory() {
         }
 
         while (address + data.length > startAddress + buffer.length) {
-            var newBuffer = new Buffer(buffer.length + INCREMENT);
+            let newBuffer = new Buffer(buffer.length + INCREMENT);
             buffer.copy(newBuffer);
             newBuffer.fill(0, buffer.length);
             buffer = newBuffer;
@@ -35,7 +35,7 @@ function Memory() {
         }
     };
 
-    this.getData = function(address, length) {
+    this.getData = (address, length) => {
         if (!address) {
             address = startAddress;
         }
@@ -48,10 +48,8 @@ function Memory() {
         return buffer.slice(address - startAddress, address - startAddress + length);
     };
 
-    this.getAddress = function() { return startAddress; };
-    this.getLength = function() { return endAddress - startAddress; };
+    this.getAddress = () => startAddress;
+    this.getLength = () => endAddress - startAddress;
 }
 
-module.exports = function() {
-    return new Memory();
-};
+module.exports = () => new Memory();
