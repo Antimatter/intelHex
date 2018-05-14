@@ -2,6 +2,7 @@ const fs = require('fs-extra');
 const ap = require('async-promise-wrapper');
 const EventEmitter = require('events').EventEmitter;
 const util = require('util');
+const callbackify = require('callbackify');
 
 //////////  Encoding functions //////////
 
@@ -92,13 +93,9 @@ function _bufferReader(address, data) {
     };
 }
 
-module.exports.binaryBufferReader = data => new _bufferReader(0, data);
+module.exports.bufferReader = (address, data) => new _bufferReader(address, data);
 
-module.exports.binaryFileReader = path => {
-    return fs.readFile(path).then(data => new _bufferReader(0, data));
-};
-
-module.exports.writeHexFile = function(path, address, data, progress) {
+module.exports.writeFile = callbackify((path, address, data, options) => {
     let br = new _bufferReader(address, data);
     let stream = fs.createWriteStream(path);
 
@@ -108,11 +105,11 @@ module.exports.writeHexFile = function(path, address, data, progress) {
     return ap
         .doWhilst(() => {
             stream.write(br.getNextRecord() + '\r\n');
-            if (progress) {
+            if (options.progress) {
                 var percent = Math.floor(br.bytesRead() * 100 / totalSize);
 
                 if (percent != lastPercent) {
-                    progress(percent);
+                    options.progress(percent);
                     lastPercent = percent;
                 }
             }
@@ -123,7 +120,7 @@ module.exports.writeHexFile = function(path, address, data, progress) {
                 stream.end(resolve);
             });
         });
-};
+});
 
 //////////  Decoding functions //////////
 
@@ -284,30 +281,11 @@ function _hexDecoder() {
 
 util.inherits(_hexDecoder, EventEmitter);
 
-const _binaryFileWriter = function(path) {
-    var hd = new _hexDecoder();
-
-    this.decodeRecord = hd.decodeRecord;
-    this.eof = hd.eof;
-
-    this.bytesWritten = () => {
-        return hd.getLength();
-    };
-
-    this.close = () => {
-        return fs.writeFile(path, hd.getBuffer());
-    };
-};
-
-module.exports.binaryFileWriter = path => {
-    return new _binaryFileWriter(path);
-};
-
 const es = require('event-stream');
 
-module.exports.readHexFile = function(filename, progress, info) {
+module.exports.readFile = callbackify((filename, options) => {
     var hd = new _hexDecoder();
-    if (info) hd.on('info', data => info(data));
+    if (options.info) hd.on('info', data => options.info(data));
 
     return fs.stat(filename).then(stats => {
         let bytesRead = 0;
@@ -321,14 +299,14 @@ module.exports.readHexFile = function(filename, progress, info) {
                 .pipe(
                     es.map((data, callback) => {
                         let line = data.trim();
-                        if (progress) {
+                        if (options.progress) {
                             bytesRead += line.length + 2;
                             var percent = Math.floor(
                                 bytesRead * 100 / stats.size
                             );
 
                             if (percent != lastPercent) {
-                                progress(percent);
+                                options.progress(percent);
                                 lastPercent = percent;
                             }
                         }
@@ -340,4 +318,4 @@ module.exports.readHexFile = function(filename, progress, info) {
             return { address: hd.getAddress(), data: hd.getBuffer() };
         });
     });
-};
+});

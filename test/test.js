@@ -8,14 +8,13 @@ var TEST_ADDRESS = 0x80010000;
 describe('hex2bin', function() {
     it('should decode test.hex and the result should match test.bin', function(done) {
         intelHex
-            .readHexFile(
-                'test/test.hex',
-                progress =>
-                    process.stdout.write('\r          \r' + progress + '%'),
-                info => {
-                    console.log('\r' + info + '\n');
+            .readFile('test/test.hex', {
+                progress: percent =>
+                    process.stdout.write('\r          \r' + percent + '%'),
+                info: message => {
+                    console.log('\r' + message + '\n');
                 }
-            )
+            })
             .then(result => {
                 assert.equal(result.address, TEST_ADDRESS, 'address mismatch');
                 return fs.readFile('test/test.bin').then(data => {
@@ -35,7 +34,12 @@ describe('bin2hex', function() {
             .readFile('test/test.bin')
             .then(data => {
                 return intelHex
-                    .writeHexFile('test/test.out.hex', TEST_ADDRESS, data)
+                    .writeFile('test/test.out.hex', TEST_ADDRESS, data, {
+                        progress: percent =>
+                            process.stdout.write(
+                                '\r          \r' + percent + '%'
+                            )
+                    })
                     .then(() => {
                         return fs.readFile('test/test.hex').then(hex1 => {
                             return fs

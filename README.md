@@ -1,34 +1,62 @@
 # node-intelHex
 
-An asynchronous, promise-based, reader/writer module for Intel Hex files
+An asynchronous, promise-based, reader/writer module for Intel Hex files for [node](http://nodejs.org).
 
+  [![NPM Version][npm-image]][npm-url]
+  [![NPM Downloads][downloads-image]][downloads-url]
+  [![Linux Build][travis-image]][travis-url]
+  [![Windows Build][appveyor-image]][appveyor-url]
+  [![Test Coverage][coveralls-image]][coveralls-url]
+
+
+# Installation
+```bash
+$ npm install node-intelhex
+```
+# Features
+* Asynchronous using ES6 Promises
+* High-level functions to transfer node Buffer objects to files and back
+* Low-level functions to write/parse files a line at a time
 # Usage
-
+```js
+const hex = require('node-intelhex');
 ```
-const intelHex = require('node-intelhex');
+## readFile(filename, options, callback~opt~)
+
+Reads "filename" asynchronously, returns an object with a node Buffer along with the starting address.
+```js
+{
+    data: Buffer,
+    address: number
+}
 ```
 
-## readHexFile(filename, progress, info);
+If no callback specified, returns a Promise
 
-Reads "filename" asynchronously, returns a promise that resolves when complete, or rejects if there's an error.
-
-The optional progress callback takes a percentage as input.
-
-The optional info callback receives interesting messages about what is encountered in the file.  Mostly for debug purposes.
-
+The "options" argument contains an object that can specify additional options:
+```js
+{
+    progress: function,
+    info: function
+}
 ```
-intelHex
-    .readHexFile(
+#### progress:
+A callback to monitor progress.  Receives a number representing percentage complete.  Only called when percentage changes.
+#### info:
+A callback to receive informational messages during parsing.  Mostly for debug purposes.
+### Example
+```js
+hex
+    .readFile(
         'test/test.hex',
-        progress =>
-            process.stdout.write('\r          \r' + progress + '%'),
-        info => {
-            console.log('\r' + info + '\n');
+        {
+            progress: percent => process.stdout.write('\r          \r' + percent + '%'),
+            info: message => console.log('\r' + info + '\n')
         }
     )
     .then(result => {
 //      {
-//          address: <address first byte in file>, 
+//          address: <address of first byte in file>, 
 //          buffer: <bytes read from file>
 //      }
     })
@@ -36,17 +64,24 @@ intelHex
         // handle error
     });
 ```
-## writeHexFile(filename, address, data, progress)
+## writeFile(filename, address, data, options, callback~opt~)
 
 Writes the buffer in "data" to file "filename", with starting address "address".
 
-Returns a promise that resolves on completion (after flushing) or rejects on error.
+Optional callback or Promise resolution on completion (after flushing).
 
-The optional progress callback takes a percentage as input.
-
+The "options" argument contains an object that can specify additional options:
+```js
+{
+    progress: function
+}
 ```
-intelHex
-    .writeHexFile('test/test.out.hex', address, data)
+#### progress:
+A callback to monitor progress.  Receives a number representing percentage complete.  Only called when percentage changes.
+### Example
+```js
+hex
+    .writeFile('test/test.out.hex', address, data)
     .then(() => {
         // all done
     })
@@ -54,18 +89,13 @@ intelHex
         // handle error (mostly like from fs)
     });
 ```
-
-## setLineBytes(mlb)
-
-Set the number of bytes per line to mlb.  Default is 32.
-
-## binaryBufferReader(data)
-
-Returns an object that produces intel hex lines one at a time until complete.
-
-```
+## setLineBytes(num)
+Set the number of bytes per line to num.  Default is 32.
+## bufferReader(data)
+Returns an object that takes a Buffer and starting address and produces Intel Hex lines one at a time until complete.
+```js
 // create reader
-let br = intelHex.binaryBufferReader(data);
+let br = hex.bufferReader(address, data);
 
 // pull next record string
 br.getNextRecord()
@@ -78,8 +108,4 @@ br.length()
 
 // num bytes read
 br.bytesRead()
-
-## binaryFileReader(filename)
-
-shortcut to read a file into a buffer and create a binaryBufferReader from it
 
