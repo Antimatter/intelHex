@@ -1,4 +1,4 @@
-# node-intelHex
+# intelhex-extra
 
 An asynchronous, promise-based, reader/writer module for Intel Hex files for [node](http://nodejs.org).
 
@@ -11,7 +11,7 @@ An asynchronous, promise-based, reader/writer module for Intel Hex files for [no
 
 # Installation
 ```bash
-$ npm install node-intelhex
+$ npm install intelhex-extra
 ```
 # Features
 * Asynchronous using ES6 Promises
@@ -19,7 +19,7 @@ $ npm install node-intelhex
 * Low-level functions to write/parse files a line at a time
 # Usage
 ```js
-const hex = require('node-intelhex');
+const hex = require('intelhex-extra');
 ```
 ## readFile(filename, options, callback~opt~)
 
