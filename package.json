@@ -1,5 +1,5 @@
 {
-  "name": "intelhex",
+  "name": "node-intel-hex",
   "version": "2.0.0",
   "description": "Intel Hex reader/writer",
   "main": "intelHex.js",
@@ -25,5 +25,13 @@
   "devDependencies": {
     "eslint": "^4.19.1",
     "mocha": "^5.1.1"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Antimatter/node-intel-hex.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Antimatter/node-intel-hex/issues"
+  },
+  "homepage": "https://github.com/Antimatter/node-intel-hex#readme"
 }
