@@ -21,7 +21,7 @@ $ npm install node-intelhex
 ```js
 const hex = require('node-intelhex');
 ```
-## readFile(filename, options, callback~opt~)
+## readFile(filename, options, callback, ~opt~)
 
 Reads "filename" asynchronously, returns an object with a node Buffer along with the starting address.  If the file contains discontinuous data, gaps are filled with zeroes automatically.
 ```js
@@ -64,7 +64,7 @@ hex
         // handle error
     });
 ```
-## writeFile(filename, address, data, options, callback~opt~)
+## writeFile(filename, address, data, options, callback, ~opt~)
 
 Writes the buffer in "data" to file "filename", with starting address "address".
 
